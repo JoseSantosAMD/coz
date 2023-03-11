@@ -3,6 +3,16 @@
  * Infinity / -Infinity occurs when dividing by 0.
  * NaN happens when the data is messed up and we get a NaN into a computation somewhere.
  */
+const init = require('./coz_cli/utils/init');
+const cli = require('./coz_cli/utils/cli');
+const log = require('./coz_cli/utils/log');
+
+const input = cli.input;
+const flags = cli.flags;
+const { clear, debug } = flags;
+
+
+
 function isValidDataPoint(data) {
     return !isNaN(data) && data !== Infinity && data !== -Infinity;
 }
@@ -85,6 +95,7 @@ function max_normalized_area(d) {
                 max_normalized_area = normalized_area;
         }
     }
+    // console.log(max_normalized_area)
     return max_normalized_area;
 }
 function max_progress_speedup(d) {
@@ -137,6 +148,7 @@ var sort_functions = {
 };
 var Profile = /** @class */ (function () {
     function Profile(profile_text, container, legend, get_min_points, display_warning) {
+        // console.log("initializing")
         this._data = {};
         this._disabled_progress_points = [];
         this._progress_points = null;
@@ -166,6 +178,8 @@ var Profile = /** @class */ (function () {
                 experiment = entry;
             }
             else if (entry.type === 'throughput-point' || entry.type === 'progress-point') {
+                // console.log(experiment)
+                // console.log(entry)
                 this.addThroughputMeasurement(experiment, entry);
             }
             else if (entry.type === 'latency-point') {
@@ -304,7 +318,7 @@ var Profile = /** @class */ (function () {
     };
     Profile.prototype.drawLegend = function () {
         var _this = this;
-        var container = this._plot_legend;
+        // var container = this._plot_legend;
         var progress_points = this.getProgressPoints();
         var legend_entries_sel = container.selectAll('p.legend-entry').data(progress_points);
         legend_entries_sel.enter().append('p').attr('class', 'legend-entry');
@@ -579,6 +593,20 @@ var Profile = /** @class */ (function () {
         lines_sel.enter().append('path');
         lines_sel.attr('d', line);
         lines_sel.exit().remove();
+        //console.log(speedup_data);
+        // for (let i = 0; i < speedup_data.length; i++){
+        //     for (let j = 0; j < speedup_data[i].progress_points.length; j++){
+        //         let curr_speedup = (speedup_data[i]).progress_points[j];
+        //         for (let k = 0; k < curr_speedup.measurements.length; k++){
+        //             let curr_measurement = curr_speedup.measurements[k];
+        //             let out = ("["+speedup_data[i].name+"]["+curr_speedup.name+"]["+(100 * curr_measurement.speedup).toString()+"] speedup\t"+(100 * curr_measurement.progress_speedup).toFixed(2)+"%").toString();
+        //             curr_measurement.progress_speedup.toString()
+        //             console.log(out);
+        //         }
+        //     }
+        // }
+
+
         /****** Add or update points ******/
         var points_sel = series_sel.selectAll('circle').data(function (d) { return d.measurements; });
         points_sel.enter().append('circle').attr('r', radius);
@@ -599,3 +627,36 @@ var Profile = /** @class */ (function () {
     return Profile;
 }());
 //# sourceMappingURL=profile.js.map
+
+(async () => {
+	init({ clear });
+	input.includes(`help`) && cli.showHelp(0);
+    if(flags.file){
+        const fs = require('fs');
+        const min_points = flags.minPoints
+        try {
+            const profile_text = fs.readFileSync(flags.file, 'utf8');
+            // console.log(profile_text);
+            prof = new Profile(profile_text, null, null, min_points, function(message){
+                console.log(message);
+            }) 
+            var speedup_data = prof.getSpeedupData(min_points);
+
+            for (let i = 0; i < speedup_data.length; i++){
+                for (let j = 0; j < speedup_data[i].progress_points.length; j++){
+                    let curr_speedup = (speedup_data[i]).progress_points[j];
+                    for (let k = 0; k < curr_speedup.measurements.length; k++){
+                        let curr_measurement = curr_speedup.measurements[k];
+                        let out = ("["+speedup_data[i].name+"]["+curr_speedup.name+"]["+(100 * curr_measurement.speedup).toString()+"] speedup\t"+(100 * curr_measurement.progress_speedup).toFixed(2)+"%").toString();
+                        curr_measurement.progress_speedup.toString()
+                        console.log(out);
+                    }
+                }
+            }
+          } catch (err) {
+            console.error(err);
+          }
+    }
+    
+	debug && log(flags);
+})();
